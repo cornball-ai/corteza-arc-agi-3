@@ -370,8 +370,9 @@ play_game() {
   local slug="$1"
   local glog="$RUN_DIR/logs/$slug.log"
   mkdir -p "$RUN_DIR/logs"
-  local waits=0 fails=0 resumes=0 attempts=0 card=""
+  local waits=0 fails=0 resumes=0 attempts=0 card="" was_resume=0
   while :; do
+    was_resume=0
     attempts=$((attempts + 1))
     # Preserve every failed attempt. The driver records the actual exception
     # in records/<slug>.json while stdout only carries a score summary; deleting

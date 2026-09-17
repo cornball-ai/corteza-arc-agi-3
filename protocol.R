@@ -230,6 +230,7 @@ arc_retryable_transport_error <- function(e) {
                  "cannot open the connection|HTTP/2 (stream|framing)|",
                  "Stream error in the HTTP/2 framing layer|",
                  "API error \\((502|503|504|529)\\)|overloaded|",
+                 "token request failed \\(HTTP (429|500|502|503|504|529)\\)|",
                  "upstream connect error|disconnect/reset before headers"),
           conditionMessage(e), ignore.case = TRUE)
 }

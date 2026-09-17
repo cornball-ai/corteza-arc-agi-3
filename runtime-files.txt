@@ -18,6 +18,7 @@ version.R
 sweep.sh
 worker-pool.sh
 test-protocol.R
+test-sweep.sh
 watch-board.R
 watch-scoreboard.R
 watch-tmux.sh
