@@ -809,7 +809,7 @@ play_one <- function(slug, model, provider, max_turns, arc_dir,
             delay <- arc_model_retry_delay(
                 r, session$provider %||% provider,
                 limit_seconds = as.integer(
-                    Sys.getenv("ARC_LIMIT_RETRY_SECS", "1800")))
+                    Sys.getenv("ARC_LIMIT_RETRY_SECS", "300")))
             cat(sprintf("%s %s, retry %d/%d in %ds: %s\n",
                         format(Sys.time(), "%H:%M:%S"), kind, retry,
                         retry_limit, delay,

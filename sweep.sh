@@ -59,8 +59,8 @@ LOG="$RUN_DIR/sweep.log"
 RUNS="$RUN_DIR/runs.jsonl"
 mkdir -p "$RUN_DIR"
 export ARC_DIR ARC_OUTPUT_DIR ARC_RUN_DIR="$RUN_DIR" ARC_SLOTS="$SLOTS"
-MAX_WAITS=10             # rate-limit sleeps allowed per game (~5h)
-COOLDOWN=1800            # 30 min after a rate-limit death
+MAX_WAITS=10             # rate-limit sleeps allowed per game (~50 min)
+COOLDOWN=300             # 5 min: stay under ARC's 15-min inactivity deadline
 # Wall clock per game: the driver sizes it to the action budget
 # (budget / ARC_ACTIONS_PER_HOUR hours) and this is the floor.
 export ARC_GAME_TIMEOUT=21600
@@ -72,7 +72,7 @@ export ARC_REQUEST_BUFFER_RETRIES="${ARC_REQUEST_BUFFER_RETRIES:-3}"
 export ARC_COMPACT_TIMEOUT="${ARC_COMPACT_TIMEOUT:-120}"
 export ARC_NET_RETRIES="${ARC_NET_RETRIES:-5}"
 export ARC_LIMIT_RETRIES="${ARC_LIMIT_RETRIES:-10}"
-export ARC_LIMIT_RETRY_SECS="${ARC_LIMIT_RETRY_SECS:-1800}"
+export ARC_LIMIT_RETRY_SECS="${ARC_LIMIT_RETRY_SECS:-300}"
 
 # Reasoning depth. Two knobs because the providers disagree: effort on
 # the openai/codex wire, a thinking-token budget on Anthropic. The
