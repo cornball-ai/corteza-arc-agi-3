@@ -1,5 +1,5 @@
 # name kind public_source revision_or_sha256
-corteza git https://github.com/cornball-ai/corteza.git 3dd66ed281f7dd684eb41f669444f9cbf42ccfaa
+corteza git https://github.com/cornball-ai/corteza.git a65b08737ea2760fa82353b97d0b6782d9eb57dc
 llm.api git https://github.com/cornball-ai/llm.api.git ef92962f30eb49c31a10e18ff4ec39912298cf88
 saber git https://github.com/cornball-ai/saber.git d16a33d5df1d9af31111fec7667b7517a496c0d0
 tinyoauth git https://github.com/cornball-ai/tinyoauth.git 6c789555ad7148dc8dd48d99d4148305a1aa7ef6

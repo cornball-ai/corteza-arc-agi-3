@@ -59,8 +59,8 @@ LOG="$RUN_DIR/sweep.log"
 RUNS="$RUN_DIR/runs.jsonl"
 mkdir -p "$RUN_DIR"
 export ARC_DIR ARC_OUTPUT_DIR ARC_RUN_DIR="$RUN_DIR" ARC_SLOTS="$SLOTS"
-MAX_WAITS=10             # rate-limit sleeps allowed per game (~5h)
-COOLDOWN=1800            # 30 min after a rate-limit death
+MAX_WAITS=10             # rate-limit sleeps allowed per game (~50 min)
+COOLDOWN=300             # 5 min: stay under ARC's 15-min inactivity deadline
 # Wall clock per game: the driver sizes it to the action budget
 # (budget / ARC_ACTIONS_PER_HOUR hours) and this is the floor.
 export ARC_GAME_TIMEOUT=21600
@@ -72,7 +72,7 @@ export ARC_REQUEST_BUFFER_RETRIES="${ARC_REQUEST_BUFFER_RETRIES:-3}"
 export ARC_COMPACT_TIMEOUT="${ARC_COMPACT_TIMEOUT:-120}"
 export ARC_NET_RETRIES="${ARC_NET_RETRIES:-5}"
 export ARC_LIMIT_RETRIES="${ARC_LIMIT_RETRIES:-10}"
-export ARC_LIMIT_RETRY_SECS="${ARC_LIMIT_RETRY_SECS:-1800}"
+export ARC_LIMIT_RETRY_SECS="${ARC_LIMIT_RETRY_SECS:-300}"
 
 # Reasoning depth. Two knobs because the providers disagree: effort on
 # the openai/codex wire, a thinking-token budget on Anthropic. The
@@ -370,8 +370,9 @@ play_game() {
   local slug="$1"
   local glog="$RUN_DIR/logs/$slug.log"
   mkdir -p "$RUN_DIR/logs"
-  local waits=0 fails=0 resumes=0 attempts=0 card=""
+  local waits=0 fails=0 resumes=0 attempts=0 card="" was_resume=0
   while :; do
+    was_resume=0
     attempts=$((attempts + 1))
     # Preserve every failed attempt. The driver records the actual exception
     # in records/<slug>.json while stdout only carries a score summary; deleting
@@ -433,11 +434,12 @@ play_game() {
     elif [ "$was_resume" = 1 ]; then
       # If the driver proved the authoritative recording is gone, it retired
       # inflight/ to done/. Starting this slug fresh on the same scorecard
-      # would make a supposedly clean run contain two trajectories. Stop the
-      # campaign instead; an operator can open a genuinely fresh card.
+      # would make a supposedly clean run contain two trajectories. Halt the
+      # whole campaign (return 2 trips the worker-pool circuit breaker) so the
+      # scorecard stays clean; an operator opens a genuinely fresh card.
       if [ -z "$(resumable_card "$slug")" ]; then
         say "$slug: authoritative recording is gone; stopping clean campaign"
-        return 1
+        return 2
       fi
       say "$slug: resume of $card failed, retrying in 60s (resume $resumes/${ARC_MAX_RESUMES:-5})"
       sleep 60

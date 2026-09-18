@@ -334,6 +334,19 @@ expect_true(arc_retryable_transport_error(simpleError(
     paste0("Stream error in the HTTP/2 framing layer [chatgpt.com]:\n",
            "HTTP/2 stream 1 was not closed cleanly: INTERNAL_ERROR (err 2)"))))
 expect_false(arc_retryable_transport_error(simpleError("invalid tool input")))
+expect_true(arc_retryable_transport_error(simpleError(
+    "OAuth token refresh failed: token request failed (HTTP 503): unavailable")))
+expect_false(arc_retryable_transport_error(simpleError(
+    "OAuth token refresh failed: token request failed (HTTP 400): invalid_grant")))
+# A transient credential gap -- a token refresh momentarily leaving the cache
+# without a usable token -- is retryable: the model call should wait and retry
+# in place rather than crash the game. This exact error stranded a game mid-run
+# (its ARC recording then expired before it could resume).
+expect_true(arc_retryable_transport_error(simpleError(
+    paste0("No OpenAI Codex credentials available. ",
+           "Run openai_codex_login() (or set OPENAI_CODEX_ACCESS_TOKEN)."))))
+expect_true(arc_retryable_model_error(simpleError(
+    "No OpenAI Codex credentials available.")))
 limit_error <- simpleError(paste("every provider is in a limit cooldown:",
                                  "openai_codex until 20:20"))
 overload_error <- simpleError(paste(
@@ -553,5 +566,18 @@ writeLines(c(
     "! grep -q 'orphan:x' \"$pool_log\""
 ), pool_script)
 expect_equal(system2("bash", pool_script), 0L)
+
+# Run the actual sweep retry loop, including fresh failures before any resume.
+for (scenario in c("fresh-error", "fresh-retryable", "resume-error",
+                    "resume-retryable", "fresh-exhausted", "inherited-state",
+                    "separate-games", "recording-gone")) {
+    retry_output <- suppressWarnings(system2(
+        "bash", c(shQuote(file.path(arc_dir, "test-sweep.sh")),
+                  shQuote(file.path(tmp, scenario)), shQuote(scenario)),
+        stdout = TRUE, stderr = TRUE))
+    retry_status <- attr(retry_output, "status") %||% 0L
+    expect_equal(retry_status, 0L,
+                 info = paste(scenario, paste(retry_output, collapse = "\n")))
+}
 unlink(tmp, recursive = TRUE)
-cat("ARC protocol tests passed\n")
+cat("ARC protocol checks complete\n")
