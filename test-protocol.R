@@ -338,6 +338,15 @@ expect_true(arc_retryable_transport_error(simpleError(
     "OAuth token refresh failed: token request failed (HTTP 503): unavailable")))
 expect_false(arc_retryable_transport_error(simpleError(
     "OAuth token refresh failed: token request failed (HTTP 400): invalid_grant")))
+# A transient credential gap -- a token refresh momentarily leaving the cache
+# without a usable token -- is retryable: the model call should wait and retry
+# in place rather than crash the game. This exact error stranded a game mid-run
+# (its ARC recording then expired before it could resume).
+expect_true(arc_retryable_transport_error(simpleError(
+    paste0("No OpenAI Codex credentials available. ",
+           "Run openai_codex_login() (or set OPENAI_CODEX_ACCESS_TOKEN)."))))
+expect_true(arc_retryable_model_error(simpleError(
+    "No OpenAI Codex credentials available.")))
 limit_error <- simpleError(paste("every provider is in a limit cooldown:",
                                  "openai_codex until 20:20"))
 overload_error <- simpleError(paste(
@@ -561,7 +570,7 @@ expect_equal(system2("bash", pool_script), 0L)
 # Run the actual sweep retry loop, including fresh failures before any resume.
 for (scenario in c("fresh-error", "fresh-retryable", "resume-error",
                     "resume-retryable", "fresh-exhausted", "inherited-state",
-                    "separate-games")) {
+                    "separate-games", "recording-gone")) {
     retry_output <- suppressWarnings(system2(
         "bash", c(shQuote(file.path(arc_dir, "test-sweep.sh")),
                   shQuote(file.path(tmp, scenario)), shQuote(scenario)),

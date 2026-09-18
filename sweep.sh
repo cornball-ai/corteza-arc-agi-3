@@ -434,11 +434,12 @@ play_game() {
     elif [ "$was_resume" = 1 ]; then
       # If the driver proved the authoritative recording is gone, it retired
       # inflight/ to done/. Starting this slug fresh on the same scorecard
-      # would make a supposedly clean run contain two trajectories. Stop the
-      # campaign instead; an operator can open a genuinely fresh card.
+      # would make a supposedly clean run contain two trajectories. Halt the
+      # whole campaign (return 2 trips the worker-pool circuit breaker) so the
+      # scorecard stays clean; an operator opens a genuinely fresh card.
       if [ -z "$(resumable_card "$slug")" ]; then
         say "$slug: authoritative recording is gone; stopping clean campaign"
-        return 1
+        return 2
       fi
       say "$slug: resume of $card failed, retrying in 60s (resume $resumes/${ARC_MAX_RESUMES:-5})"
       sleep 60

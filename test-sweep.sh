@@ -50,6 +50,16 @@ case "$scenario" in
     failures=0
     expected_calls="test-card fresh"
     ;;
+  recording-gone)
+    # A resume attempt that proves the authoritative recording is gone must
+    # halt the whole campaign (return 2), not silently drop the game and
+    # continue, so the shared scorecard never gains a second trajectory.
+    touch "$RUN_DIR/checkpoint"
+    keep_checkpoint=0
+    failures=99
+    expected_status=2
+    expected_calls="test-card"
+    ;;
   *) echo "Unknown test scenario: $scenario" >&2; exit 1 ;;
 esac
 
@@ -69,7 +79,11 @@ r() {
   n="$(wc -l < "$RUN_DIR/calls")"
   if [ "$n" -le "$failures" ]; then
     printf '{"summary":"synthetic driver failure"}\n' > "$RUN_DIR/records/test-game.json"
-    if [ "$keep_checkpoint" -eq 1 ]; then touch "$RUN_DIR/checkpoint"; fi
+    if [ "$keep_checkpoint" -eq 1 ]; then
+      touch "$RUN_DIR/checkpoint"
+    else
+      rm -f "$RUN_DIR/checkpoint"
+    fi
     return 1
   fi
   touch "$RUN_DIR/finished"
@@ -94,6 +108,9 @@ mapfile -t calls < "$RUN_DIR/calls"
 [ "${calls[*]}" = "$expected_calls" ] || exit 1
 if [ "$scenario" = fresh-exhausted ]; then
   grep -q 'GIVING UP after 2 non-rate-limit failures' "$RUN_DIR/messages" || exit 1
+elif [ "$scenario" = recording-gone ]; then
+  grep -q 'authoritative recording is gone; stopping clean campaign' \
+    "$RUN_DIR/messages" || exit 1
 elif [ "$failures" -gt 0 ]; then
   # The retry uses the checkpoint, archives the old error, and preserves logs.
   grep -q 'resuming card test-card (resume 1/' "$RUN_DIR/messages" || exit 1
